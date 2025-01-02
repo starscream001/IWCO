@@ -633,26 +633,26 @@ banner
   transform: translate(-50%,-50%);
 }
 
-.main-banner .caption h6 {
+.main-banner .caption h5 {
   margin-top: 0px;
-  font-size: 18px;
+  font-size: 20px;
   text-transform: uppercase;
   font-weight: 800;
   color: #fff;
   letter-spacing: 0.5px;
 }
 
-.main-banner .caption h2 {
+.main-banner .caption h3 {
   margin-top: 30px;
   margin-bottom: 25px;
-  font-size: 84px;
+  font-size: 50px;
   text-transform: uppercase;
   font-weight: 800;
   color: #fff;
   letter-spacing: 1px;
 }
 
-.main-banner .caption h2 em {
+.main-banner .caption h3 em {
   font-style: normal;
   color: #ed563b;
   font-weight: 900;
