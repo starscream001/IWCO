@@ -422,43 +422,44 @@
     <section class="section" id="contact-us">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-lg-6 col-md-6 col-xs-12">
-                    <div id="map">
-                      <iframe src="https://maps.google.com/maps?q=Av.+L%C3%BAcio+Costa,+Rio+de+Janeiro+-+RJ,+Brazil&t=&z=13&ie=UTF8&iwloc=&output=embed" width="100%" height="600px" frameborder="0" style="border:0" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-6 col-xs-6">
-                    <div class="contact-form">
-                        <form id="contact" action="" method="post">
-                          <div class="row">
+                <div class="contact-form">
+                    <h2></h2>
+                    <form id="contact" onsubmit="return submitForm(event);">
+                        <div class="row">
                             <div class="col-md-6 col-sm-12">
-                              <fieldset>
-                                <input name="name" type="text" id="name" placeholder="Your Name*" required="">
-                              </fieldset>
+                                <fieldset>
+                                    <input name="name" type="text" id="name" placeholder="Ваше имя*" required="">
+                                </fieldset>
                             </div>
                             <div class="col-md-6 col-sm-12">
-                              <fieldset>
-                                <input name="email" type="text" id="email" pattern="[^ @]*@[^ @]*" placeholder="Your Email*" required="">
-                              </fieldset>
+                                <fieldset>
+                                    <!-- Замена email на телефон -->
+                                    <input name="phone" type="tel" id="phone" placeholder="Ваш телефон*" required="">
+                                </fieldset>
                             </div>
                             <div class="col-md-12 col-sm-12">
-                              <fieldset>
-                                <input name="subject" type="text" id="subject" placeholder="Subject">
-                              </fieldset>
+                                <fieldset>
+                                    <!-- Замена темы на зал -->
+                                    <select name="hall" id="hall">
+                                        <option value="">Выберите зал</option>
+                                        <option value="зал_1">Зал 1</option>
+                                        <option value="зал_2">Зал 2</option>
+                                        <option value="зал_3">Зал 3</option>
+                                    </select>
+                                </fieldset>
                             </div>
                             <div class="col-lg-12">
-                              <fieldset>
-                                <textarea name="message" rows="6" id="message" placeholder="Message" required=""></textarea>
-                              </fieldset>
+                                <fieldset>
+                                    <textarea name="message" rows="6" id="message" placeholder="Сообщение" required=""></textarea>
+                                </fieldset>
                             </div>
                             <div class="col-lg-12">
-                              <fieldset>
-                                <button type="submit" id="form-submit" class="main-button">Send Message</button>
-                              </fieldset>
+                                <fieldset>
+                                    <button type="submit" id="form-submit" class="main-button">Отправить сообщение</button>
+                                </fieldset>
                             </div>
-                          </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -470,12 +471,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    <p>Copyright &copy; 2020 Training Studio
-                    
-                    - Designed by <a rel="nofollow" href="https://templatemo.com" class="tm-text-link" target="_parent">TemplateMo</a></p>
-                    
-                    <!-- You shall support us a little via PayPal to info@templatemo.com -->
-                    
+                    <p>Федерация Вин Чун России и Международная Организация Вин Чун IWCO 2025</p>
                 </div>
             </div>
         </div>
@@ -490,6 +486,7 @@
 
     <!-- Plugins -->
     <script src="assets/js/scrollreveal.min.js"></script>
+    <script src="assets/js/script.js"></script>
     <script src="assets/js/waypoints.min.js"></script>
     <script src="assets/js/jquery.counterup.min.js"></script>
     <script src="assets/js/imgfix.min.js"></script> 
