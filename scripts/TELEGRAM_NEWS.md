@@ -41,3 +41,8 @@ It supports Telegram photos, text formatting and native videos; documents are sk
 The contact form has a separate backend; see `contact-service/README.md`.
 GitHub secrets are never embedded into client HTML or JavaScript.
 
+
+Each publication also has a static URL under news/. site_pages.py generates
+article metadata and sitemap.xml. The tabs page keeps the latest 20 entries;
+older articles remain available through paginated archive pages (20 per page).
+The importer updates article URLs, archives and sitemap whenever it adds posts.

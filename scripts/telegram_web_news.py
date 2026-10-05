@@ -7,6 +7,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from bs4 import BeautifulSoup
+from site_pages import news_path, write_article, refresh_archive
 
 STATE = Path('data/telegram-web-news.json')
 CHANNELS = Path('data/telegram-channels.json')
@@ -101,6 +102,7 @@ def render_story(story):
     channel = story.get('channel', CHANNEL)
     sources = ' · '.join(f'<a href="https://t.me/{channel}/{number}" target="_blank" rel="noopener noreferrer">Публикация {number}</a>' for number in story.get('source_ids', []))
     article = f"<article id='{identity}' class='news-article'>\n{images}\n<h4>{title}</h4>\n{date}\n<div class=\"news-copy\">{story['body']}</div>\n{videos}\n<p class=\"news-sources\">Источник: {sources}</p>\n</article>"
+    article = article.replace('</article>', f'<p class="news-permalink"><a href="/{news_path(identity)}">Открыть новость отдельной страницей</a></p>\n</article>')
     return navigation, article
 
 
@@ -114,6 +116,7 @@ def insert_stories(stories):
         nav, article = render_story(story)
         navigation.append(nav)
         articles.append(article)
+        write_article(story['id'],story['title'],article,story.get('date',''))
     for marker, additions in [('<!-- TELEGRAM_NEWS_NAV -->', navigation), ('<!-- TELEGRAM_NEWS_ARTICLES -->', articles)]:
         if source.count(marker) != 1:
             raise RuntimeError('Missing or duplicate news insertion marker')
@@ -121,6 +124,7 @@ def insert_stories(stories):
             source = source.replace(marker, marker + '\n' + '\n'.join(additions))
     if articles:
         page.write_text(source)
+        refresh_archive()
     return len(articles)
 
 

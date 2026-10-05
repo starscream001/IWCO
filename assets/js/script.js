@@ -47,7 +47,8 @@ async function submitForm(event) {
             body: JSON.stringify({
                 name: values.get('name'), phone: values.get('phone'),
                 hall: values.get('hall'), message: values.get('message'),
-                website: values.get('website') || '', challenge: contactChallenge
+                website: values.get('website') || '', challenge: contactChallenge,
+                consent: values.get('consent') === 'yes', consent_version: '2026-10-05'
             }),
             signal: AbortSignal.timeout(20000)
         });

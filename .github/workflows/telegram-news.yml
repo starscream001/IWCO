@@ -49,7 +49,7 @@ jobs:
         run: python3 scripts/telegram_web_news.py
       - name: Persist news
         run: |
-          git add data news.html
+          git add data news.html news sitemap.xml
           if test -d assets/images/news; then git add assets/images/news; fi
           if ! git diff --cached --quiet; then git commit -m 'Import public Telegram news'; fi
           git push origin "$NEWS_BRANCH"
