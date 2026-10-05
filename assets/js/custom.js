@@ -68,13 +68,13 @@
 	        })
 	        $(this).addClass('active');
 	      
-	        var target = this.hash,
-	        menu = target;
-	       	var target = $(this.hash);
+	        var targetHash = this.hash;
+	        var target = $(targetHash);
+	        if (!target.length) return;
 	        $('html, body').stop().animate({
 	            scrollTop: (target.offset().top) + 1
 	        }, 500, 'swing', function () {
-	            window.location.hash = target;
+	            window.location.hash = targetHash;
 	            $(document).on("scroll", onScroll);
 	        });
 	    });
@@ -84,7 +84,10 @@
 	    var scrollPos = $(document).scrollTop();
 	    $('.nav a').each(function () {
 	        var currLink = $(this);
-	        var refElement = $(currLink.attr("href"));
+	        var href = currLink.attr("href");
+	        if (!href || href.charAt(0) !== "#") return;
+	        var refElement = $(href);
+	        if (!refElement.length) return;
 	        if (refElement.position().top <= scrollPos && refElement.position().top + refElement.height() > scrollPos) {
 	            $('.nav ul li a').removeClass("active");
 	            currLink.addClass("active");
