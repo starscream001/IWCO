@@ -51,3 +51,5 @@ Each publication also has a static URL under news/. site_pages.py generates
 article metadata and sitemap.xml. The tabs page keeps the latest 20 entries;
 older articles remain available through paginated archive pages (20 per page).
 The importer updates article URLs, archives and sitemap whenever it adds posts.
+
+Публичные ссылки VK Video и Rutube, а также ссылки на публикации Telegram в тексте или блоке видео получают встроенные блоки просмотра. Плееры и Telegram Widget загружаются только после нажатия; исходные ссылки и местный текст сохраняются. Ссылки атрибуции не создают дополнительные Telegram-виджеты. Приватные публикации и ссылки на профили остаются ссылками. Карты sitemap.html и sitemap.xml обновляются вместе с архивом.

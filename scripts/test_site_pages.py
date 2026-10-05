@@ -31,7 +31,7 @@ class SitePagesTests(unittest.TestCase):
                 self.assertIn('tg-testchannel-24.html',Path('sitemap.xml').read_text())
                 page=BeautifulSoup(Path('news/tg-testchannel-24.html').read_text(),'html.parser')
                 self.assertEqual(len(page.find_all('h1')),1)
-                self.assertEqual(page.img['src'],'/assets/images/photo.jpg')
+                self.assertEqual(page.img['src'],'../assets/images/photo.jpg')
                 schema=json.loads(page.find('script',type='application/ld+json').string)
                 self.assertEqual(schema['@graph'][0]['headline'],'Новость 24')
             finally:
