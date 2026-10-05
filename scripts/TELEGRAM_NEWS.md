@@ -40,3 +40,4 @@ It supports Telegram photos, text formatting and native videos; documents are sk
 
 The contact form has a separate backend; see `contact-service/README.md`.
 GitHub secrets are never embedded into client HTML or JavaScript.
+
