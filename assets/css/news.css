@@ -1,0 +1,71 @@
+/* Keep the existing tabs while making a growing archive usable. */
+#news #tabs > .col-lg-4 > ul {
+  max-height: min(72vh, 800px);
+  overflow-y: auto;
+  padding: 2px 10px 12px 2px;
+  scrollbar-width: thin;
+}
+#news #tabs > .col-lg-4 > ul > li { margin-bottom: 10px; }
+#news #tabs > .col-lg-4 > ul > li > a {
+  padding: 16px 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+#news #tabs > .col-lg-4 > ul > li > a:focus-visible {
+  outline: 2px solid #ed563b;
+  outline-offset: -2px;
+}
+#news .tabs-content { display: block; }
+#news .news-article { scroll-margin-top: 100px; }
+#news .news-article h4 { line-height: 1.45; }
+#news .news-article p, #news .news-copy {
+  color: #4b535c;
+  font-size: 16px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+#news .news-article p { margin-bottom: 18px; }
+#news .news-article .news-date, #news .news-article .news-sources {
+  font-size: 13px;
+  color: #626c77;
+}
+#news .news-copy ul { margin: 0 0 20px; padding-left: 24px; }
+#news .news-copy ul li {
+  display: list-item;
+  width: auto;
+  margin-bottom: 8px;
+  list-style: disc;
+}
+#news .news-copy a, #news .news-sources a, #news .telegram-embed a {
+  display: inline;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0;
+  color: #b83b24;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+#news .news-article img { width: 100%; height: auto; margin-bottom: 16px; }
+#news .telegram-embed { margin: 24px 0; min-width: 0; }
+#news .telegram-embed iframe { max-width: 100%; }
+#news .news-sources { margin-top: 24px; }
+#news .news-copy pre { white-space: pre-wrap; }
+@media (max-width: 991px) {
+  #news #tabs > .col-lg-4 > ul { max-height: 300px; margin-bottom: 24px; }
+  #news .tabs-content { margin-left: 0; }
+}
+
+.news-page .header-area { background: #fff; }
+.news-page .header-area .main-nav .logo,
+.news-page .header-area .main-nav .nav li a { color: #232d39; }
+.news-page .header-area .main-nav .nav li a.active { color: #ed563b; }
+.news-page .header-area .main-nav .nav li:last-child a { color: #fff; }
+.news-page .header-area .menu-trigger span,
+.news-page .header-area .menu-trigger span:before,
+.news-page .header-area .menu-trigger span:after { background: #232d39; }

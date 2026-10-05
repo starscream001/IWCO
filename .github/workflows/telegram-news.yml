@@ -1,0 +1,69 @@
+name: Telegram news
+on:
+  push:
+    branches: [main]
+    paths: [data/telegram-web-news.json]
+  schedule:
+    # 10:43 Moscow: render the accumulated posts and create a PR.
+    - cron: '43 7 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: telegram-news
+  cancel-in-progress: false
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GH_TOKEN: ${{ github.token }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
+      NEWS_BRANCH: codex/telegram-news
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check configuration
+        run: |
+          test -n "$TELEGRAM_BOT_TOKEN" || { echo 'Missing TELEGRAM_BOT_TOKEN secret'; exit 1; }
+          test -n "$TELEGRAM_CHAT_ID" || { echo 'Missing TELEGRAM_CHAT_ID secret'; exit 1; }
+      - name: Load persistent news branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git show-ref --verify --quiet "refs/remotes/origin/$NEWS_BRANCH"; then
+            git checkout -B "$NEWS_BRANCH" "origin/$NEWS_BRANCH"
+            git merge --no-edit "origin/$BASE_BRANCH"
+          else
+            git checkout -b "$NEWS_BRANCH"
+          fi
+      - name: Install parser
+        run: python3 -m pip install beautifulsoup4==4.12.3
+      - name: Check importer
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Import public channel
+        run: python3 scripts/telegram_web_news.py
+      - name: Persist news
+        run: |
+          git add data news.html
+          if test -d assets/images/news; then git add assets/images/news; fi
+          if ! git diff --cached --quiet; then git commit -m 'Import public Telegram news'; fi
+          git push origin "$NEWS_BRANCH"
+      - name: Create PR and notify
+        run: |
+          if git diff --quiet "origin/$BASE_BRANCH" HEAD -- news.html; then exit 0; fi
+          PR_URL=$(gh pr list --head "$NEWS_BRANCH" --base "$BASE_BRANCH" --state open --json url --jq '.[0].url // empty')
+          if test -z "$PR_URL"; then
+            PR_URL=$(gh pr create --head "$NEWS_BRANCH" --base "$BASE_BRANCH" --title 'Новости из Telegram' --body-file scripts/telegram-news-pr.md)
+          fi
+          export PR_URL
+          python3 scripts/telegram_news.py notify
+          git add data/telegram-web-news.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record news PR notification'
+            git push origin "$NEWS_BRANCH"
+          fi
