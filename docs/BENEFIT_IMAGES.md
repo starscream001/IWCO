@@ -38,3 +38,13 @@
   }
 ]
 ```
+
+## Манекен под заголовком преимуществ
+
+Файл: `assets/images/wing-chun-dummy-outline.svg`. Источник создан встроенным image_gen, затем экспортирован в SVG через VTracer 0.6.12. Основной связный контур сохранён, отдельные точки и шум удалены; цвет нормализован в #ed563b. SVG содержит векторный контур, а не встроенную растровую картинку. Размер отображения 80×96 px, прозрачный фон.
+
+Основной промпт: Create a single original Wing Chun wooden dummy (Muk Yan Jong) website section ornament. Minimal clean red-orange (#ed563b) monoline vector-style line art, matching small martial arts outline icons on a white website. Recognizable upright cylindrical trunk, two upper projecting arms, one lower arm, one bent lower wooden leg, simple horizontal mounting rails. No person, writing, shadow, gradients, border or extra symbols. Balanced centered composition, rounded strokes, entire object visible, transparent background.
+
+Промпт финального уточнения: Edit this icon. Preserve clean red-orange outline style and transparent background. Add the missing THIRD wooden arm projecting diagonally to the left from the upper trunk, just below the top oval and slightly above the current right-pointing upper arm. Keep the two existing arms and one bent leg. There must be exactly THREE projecting arms plus ONE bent leg. Remove tiny stray speckles and make smooth crisp uniform red-orange outlines. No glow, no soft blur, no gradient, no background, no shadow. Isolated small website icon.
+
+Параметры экспорта: color/stacked/spline, filter_speckle=64, color_precision=2, layer_difference=64, corner_threshold=60, length_threshold=8, max_iterations=10, splice_threshold=45, path_precision=2. После экспорта оставлен самый длинный связный path, установлен fill=#ed563b и viewBox="0 0 1181 1331".
