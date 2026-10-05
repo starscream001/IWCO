@@ -3,15 +3,18 @@ import html
 import json
 from pathlib import Path
 from bs4 import BeautifulSoup
+from vk_video import enrich_vk_videos
 
 BASE = 'https://www.wingchunspb.ru'
 
 
 def document(title, body, path, description='', schema=None, noindex=False):
     title = html.escape(title)
+    if 'data-vk-src=' in body:
+        body += '<script src="/assets/js/vk-video.js?v=20261005" defer></script>'
     metadata = '' if schema is None else '<script type="application/ld+json">'+json.dumps(schema, ensure_ascii=False).replace('</', '<\\/')+'</script>'
     robots = 'noindex, follow' if noindex else 'index, follow, max-image-preview:large'
-    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} — IWCO СПб и ЛО</title><meta name="description" content="{html.escape(description, quote=True)}"><meta name="robots" content="{robots}"><link rel="canonical" href="{BASE}/{path}"><meta property="og:type" content="article"><meta property="og:title" content="{title}"><meta property="og:url" content="{BASE}/{path}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="{BASE}/assets/images/training-image-01.jpg"><link rel="icon" href="/assets/images/logo.png"><link rel="stylesheet" href="/assets/css/site.css?v=20261005">{metadata}</head><body class="site-document"><header><a class="site-brand" href="/">IWCO СПб и ЛО</a><nav aria-label="Основная навигация"><a href="/news.html">Новости</a><a href="/#our-classes">Залы</a><a href="/#contact-us">Запись</a></nav></header><main>{body}</main><footer><p>IWCO · Вин Чун в Санкт-Петербурге и Гатчине</p><p><a href="/privacy.html">Политика обработки данных</a> · <a href="/terms.html">Условия использования</a></p></footer></body></html>'''
+    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} — IWCO СПб и ЛО</title><meta name="description" content="{html.escape(description, quote=True)}"><meta name="robots" content="{robots}"><link rel="canonical" href="{BASE}/{path}"><meta property="og:type" content="article"><meta property="og:title" content="{title}"><meta property="og:url" content="{BASE}/{path}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="{BASE}/assets/images/training-image-01.jpg"><link rel="icon" href="/assets/images/logo.png"><link rel="stylesheet" href="/assets/css/site.css?v=20261005">{metadata}</head><body class="site-document"><header><a class="site-brand" href="/">IWCO СПб и ЛО</a><nav aria-label="Основная навигация"><a href="/news.html">Новости</a><a href="/#our-classes">Залы</a><a href="/#contact-us">Запись</a></nav></header><main>{body}</main><footer><p>IWCO · Вин Чун в Санкт-Петербурге и Ленинградской области</p><p><a href="/privacy.html">Политика обработки данных</a> · <a href="/terms.html">Условия использования</a></p></footer></body></html>'''
 
 
 def news_path(identity):
@@ -20,7 +23,7 @@ def news_path(identity):
 
 def write_article(identity, title, body, published=''):
     path = news_path(identity)
-    soup = BeautifulSoup(body, 'html.parser')
+    soup = BeautifulSoup(enrich_vk_videos(body), 'html.parser')
     heading = soup.find('h4')
     if heading:
         heading.name = 'h1'

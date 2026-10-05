@@ -46,3 +46,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .archive-list { padding-left: 24px; }
 .archive-list li { margin: 18px 0; }
 .news-archive-link a, .news-permalink a { color: var(--site-accent); text-decoration: underline; }
+.vk-video { margin: 24px 0; width: 100%; }
+.vk-video-stage { aspect-ratio: 16 / 9; background: #232d39; display: grid; place-items: center; }
+.vk-video-stage iframe { width: 100%; height: 100%; border: 0; }
+.vk-video-play { width: 100%; height: 100%; padding: 24px; background: transparent; border: 0; color: #fff; font: 600 17px/1.5 Arial, sans-serif; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.vk-play-symbol { display: grid; place-items: center; width: 58px; height: 58px; padding-left: 4px; background: var(--site-accent); font-size: 25px; }
+.vk-video-play:hover .vk-play-symbol { background: #ed563b; }
+.vk-video .vk-video-caption { font: 13px/1.6 Arial, sans-serif; margin: 10px 0 0; color: var(--site-muted); }
+.vk-video-caption a { color: var(--site-accent); text-decoration: underline; }
