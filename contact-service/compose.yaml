@@ -1,0 +1,26 @@
+services:
+  contact:
+    build: .
+    image: iwco-contact:local
+    container_name: iwco-contact
+    restart: unless-stopped
+    env_file: /opt/iwco-contact/secrets.env
+    ports:
+      - "127.0.0.1:18081:8080"
+    volumes:
+      - /opt/iwco-contact/state:/state
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"

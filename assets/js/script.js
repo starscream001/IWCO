@@ -1,52 +1,87 @@
+const CONTACT_API = 'https://185.149.144.209';
+const contactForm = document.getElementById('contact');
+let contactChallenge = '';
+let contactChallengeTime = 0;
+let challengeRequest = null;
+let contactSubmitting = false;
 
-// Функция для отправки данных в Telegram-бота
-async function sendTelegramMessage(token, chatId, message) {
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: message
-            })
+async function refreshContactChallenge() {
+    if (challengeRequest) return challengeRequest;
+    challengeRequest = (async () => {
+        const response = await fetch(`${CONTACT_API}/api/challenge`, {
+            cache: 'no-store', signal: AbortSignal.timeout(10000)
         });
-        console.log('Сообщение успешно отправлено');
-    } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error);
+        if (!response.ok) throw new Error('Не удалось подключиться. Попробуйте позже или позвоните нам.');
+        const data = await response.json();
+        contactChallenge = data.challenge;
+        contactChallengeTime = Date.now();
+    })();
+    try {
+        await challengeRequest;
+    } finally {
+        challengeRequest = null;
     }
 }
 
-// Функция для обработки отправки формы
-function submitForm(event) {
+async function submitForm(event) {
     event.preventDefault();
-
-    // Получаем значения полей формы
-    const formData = new FormData(event.target);
-    const name = formData.get('name');
-    const phone = formData.get('phone');
-    const hall = formData.get('hall');
-    const message = formData.get('message');
-
-    // Формируем сообщение для отправки
-    const telegramMessage = `
-Имя: ${name}
-Телефон: ${phone}
-Зал: ${hall}
-Сообщение: ${message}
-    `.trim();
-
-    // Токен вашего бота и chat_id
-    const botToken = '6792043729:AAG7cPguS2m4Io0KWfj7yh-hjnXeqQOC3Ao';
-    const chatId = '642040616';
-
-    // Отправляем сообщение в Telegram
-    sendTelegramMessage(botToken, chatId, telegramMessage)
-        .then(() => alert('Сообщение успешно отправлено!'))
-        .catch((error) => alert(`Произошла ошибка при отправке сообщения: ${error.message}`));
+    if (contactSubmitting) return false;
+    const form = event.target;
+    if (!form.reportValidity()) return false;
+    contactSubmitting = true;
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Отправляем…';
+    try {
+        if (!contactChallenge || Date.now() - contactChallengeTime > 25 * 60 * 1000) {
+            await refreshContactChallenge();
+        }
+        // Allow the server's minimum form-filling interval after a fresh challenge.
+        const wait = 2200 - (Date.now() - contactChallengeTime);
+        if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+        const values = new FormData(form);
+        const response = await fetch(`${CONTACT_API}/api/contact`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: values.get('name'), phone: values.get('phone'),
+                hall: values.get('hall'), message: values.get('message'),
+                website: values.get('website') || '', challenge: contactChallenge
+            }),
+            signal: AbortSignal.timeout(20000)
+        });
+        let data = {};
+        try { data = await response.json(); } catch (_) { /* Nginx may return HTML errors. */ }
+        if (!response.ok || data.ok !== true) {
+            throw new Error(response.status === 429
+                ? 'Слишком много заявок. Подождите несколько минут или позвоните нам.'
+                : (data.error || 'Не удалось отправить заявку. Попробуйте позже или позвоните нам.'));
+        }
+        form.reset();
+        alert('Заявка отправлена! Мы свяжемся с вами.');
+    } catch (error) {
+        alert(error.name === 'TimeoutError' || error instanceof TypeError
+            ? 'Нет ответа от сервера. Попробуйте позже или позвоните нам.'
+            : error.message);
+    } finally {
+        contactChallenge = '';
+        contactSubmitting = false;
+        button.disabled = false;
+        button.textContent = originalText;
+        refreshContactChallenge().catch(() => {});
+    }
+    return false;
 }
 
-// Подключаемся к событию отправки формы
-document.getElementById('contact').addEventListener('submit', submitForm);
+if (contactForm) {
+    const honeypot = document.createElement('input');
+    honeypot.type = 'text';
+    honeypot.name = 'website';
+    honeypot.tabIndex = -1;
+    honeypot.autocomplete = 'off';
+    honeypot.setAttribute('aria-hidden', 'true');
+    honeypot.style.cssText = 'position:absolute;left:-10000px;width:1px;height:1px;';
+    contactForm.appendChild(honeypot);
+    refreshContactChallenge().catch(() => {});
+}
