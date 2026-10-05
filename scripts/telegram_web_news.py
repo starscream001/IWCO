@@ -1,34 +1,35 @@
-"""Import public channel posts. Bot token is used only for PR notifications."""
+"""Import public Telegram channels into the site's existing news tabs."""
 import html
 import json
 from pathlib import Path
 import re
 import urllib.parse
 import urllib.request
+from datetime import datetime
 from bs4 import BeautifulSoup
 
 STATE = Path('data/telegram-web-news.json')
+CHANNELS = Path('data/telegram-channels.json')
 CHANNEL = 'iwcowingchun'
 
 
 def fetch(url):
     request = urllib.request.Request(url, headers={'User-Agent': 'IWCO news importer'})
     with urllib.request.urlopen(request, timeout=60) as response:
-        data = response.read(20 * 1024 * 1024 + 1)
-    if len(data) > 20 * 1024 * 1024:
+        payload = response.read(20 * 1024 * 1024 + 1)
+    if len(payload) > 20 * 1024 * 1024:
         raise RuntimeError('Response exceeds size limit')
-    return data
+    return payload
 
 
-def parse_posts(document):
+def parse_posts(document, channel=CHANNEL):
     soup = BeautifulSoup(document, 'html.parser')
     posts = []
     for element in soup.select('.tgme_widget_message[data-post]'):
         reference = element.get('data-post', '')
-        if not re.fullmatch(CHANNEL + r'/\d+', reference):
+        if not re.fullmatch(re.escape(channel) + r'/\d+', reference):
             continue
         text = element.select_one('.tgme_widget_message_text')
-        # Keep the original Telegram post via its official widget for videos.
         video = bool(element.select_one('video, .tgme_widget_message_video_player'))
         photos = []
         for photo in element.select('.tgme_widget_message_photo_wrap'):
@@ -38,10 +39,13 @@ def parse_posts(document):
         if text is None and not photos and not video:
             continue
         if text:
+            for unsafe in text.select('script, style, iframe, object, embed'):
+                unsafe.decompose()
             for br in text.find_all('br'):
                 br.replace_with('\n')
-            title = next((line.strip() for line in text.get_text().splitlines() if line.strip()), 'Новость')[:160]
-            # Strip all attributes except safe external link targets and formatting.
+            plain = text.get_text()
+            lines = [line.strip() for line in plain.splitlines() if line.strip()]
+            title = next((line for line in lines if not re.match(r'^https?://', line)), 'Материал из канала ' + channel)[:160]
             for tag in list(text.find_all(True)):
                 if tag.name == 'a' and re.match(r'^https?://', tag.get('href', ''), re.I):
                     tag.attrs = {'href': tag['href'], 'target': '_blank', 'rel': 'noopener noreferrer'}
@@ -50,69 +54,108 @@ def parse_posts(document):
                 else:
                     tag.unwrap()
             body = text.decode_contents().replace('\n', '<br>\n')
+            body = re.sub(r'(?:<br>\s*){3,}', '<br><br>\n', body)
         else:
-            title, body = 'Новость из Telegram', ''
+            title, body = 'Новость из канала ' + channel, ''
+        published = next((t.get('datetime') for t in element.select('time') if t.get('datetime')), '')
         posts.append({'id': int(reference.split('/')[1]), 'reference': reference,
-                      'title': title, 'body': body, 'photos': photos, 'video': video})
+                      'title': title, 'body': body, 'photos': photos, 'video': video,
+                      'date': published[:10]})
     return sorted(posts, key=lambda post: post['id'])
 
 
-def main():
-    state = json.loads(STATE.read_text()) if STATE.exists() else None
-    pages, before = [], None
-    # Walk backwards until the saved watermark to cover busy periods and downtime.
+def read_channel(channel, last_id):
+    found, before = {}, None
     for _ in range(100):
-        url = f'https://t.me/s/{CHANNEL}' + (f'?before={before}' if before else '')
-        posts = parse_posts(fetch(url).decode())
+        url = f'https://t.me/s/{channel}' + (f'?before={before}' if before else '')
+        posts = parse_posts(fetch(url).decode(), channel)
         if not posts:
-            raise RuntimeError('No public posts found; Telegram markup may have changed')
-        pages.extend(posts)
-        if state is None or min(p['id'] for p in posts) <= state['last_id']:
-            break
-        oldest = min(p['id'] for p in posts)
+            raise RuntimeError(f'No public posts found in {channel}; check channel access and markup')
+        found.update({post['id']: post for post in posts})
+        oldest = min(post['id'] for post in posts)
+        if last_id is None or oldest <= last_id:
+            return found
         if before is not None and oldest >= before:
             raise RuntimeError('Telegram pagination did not advance')
         before = oldest
-    else:
-        raise RuntimeError('Import history exceeds pagination limit')
-    STATE.parent.mkdir(exist_ok=True)
-    if state is None:
-        # First run starts monitoring now, rather than publishing the whole archive.
-        STATE.write_text(json.dumps({'last_id': max(p['id'] for p in pages)}) + '\n')
-        print('Initialized channel watermark; future posts will be imported')
-        return
-    posts = {p['id']: p for p in pages if p['id'] > state['last_id']}
-    if not posts:
-        print('No new posts')
-        return
+    raise RuntimeError('Import history exceeds pagination limit')
+
+
+def download_image(url, target):
+    host = urllib.parse.urlsplit(url).hostname or ''
+    if not (host.endswith('.telesco.pe') or host.endswith('.telegram-cdn.org') or host == 'telegram.org' or host.endswith('.telegram.org')):
+        raise RuntimeError('Unexpected Telegram media host')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        target.write_bytes(fetch(url))
+
+
+def render_story(story):
+    identity, title = story['id'], html.escape(story['title'], quote=True)
+    navigation = f"<li><a href='#{identity}'>{title}</a></li>"
+    images = '\n'.join(f'<img src="{html.escape(path, quote=True)}" alt="{title}" loading="lazy">' for path in story.get('images', []))
+    published = story.get('date', '')
+    date_label = datetime.strptime(published, '%Y-%m-%d').strftime('%d.%m.%Y') if published else ''
+    date = f'<p class="news-date"><time datetime="{published}">{date_label}</time></p>' if published else ''
+    videos = '\n'.join(f'<div class="telegram-embed" data-telegram-post="{reference}"><p><a href="https://t.me/{reference}" target="_blank" rel="noopener noreferrer">Смотреть видео в Telegram</a></p></div>' for reference in story.get('videos', []))
+    channel = story.get('channel', CHANNEL)
+    sources = ' · '.join(f'<a href="https://t.me/{channel}/{number}" target="_blank" rel="noopener noreferrer">Публикация {number}</a>' for number in story.get('source_ids', []))
+    article = f"<article id='{identity}' class='news-article'>\n{images}\n<h4>{title}</h4>\n{date}\n<div class=\"news-copy\">{story['body']}</div>\n{videos}\n<p class=\"news-sources\">Источник: {sources}</p>\n</article>"
+    return navigation, article
+
+
+def insert_stories(stories):
     page = Path('news.html')
     source = page.read_text()
-    nav, articles = [], []
-    for post in sorted(posts.values(), key=lambda p: p['id'], reverse=True):
-        identity = f'tabs-tg-{post["id"]}'
-        title = html.escape(post['title'], quote=True)
-        images = []
-        for index, url in enumerate(post['photos']):
-            host = urllib.parse.urlsplit(url).hostname or ''
-            if not (host.endswith('.telesco.pe') or host.endswith('.telegram-cdn.org') or host == 'telegram.org' or host.endswith('.telegram.org')):
-                raise RuntimeError('Unexpected Telegram media host')
-            target = Path(f'assets/images/news/telegram-{post["id"]}-{index}.jpg')
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if not target.exists():
-                target.write_bytes(fetch(url))
-            images.append(f'<img src="{target}" alt="{title}" loading="lazy">')
-        reference = post['reference']
-        widget = (f'<script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-post="{reference}" data-width="100%"></script>' if post['video'] else '')
-        nav.append(f"<li><a href='#{identity}'>{title}</a></li>")
-        articles.append(f"<article id='{identity}'>\n" + '\n'.join(images) + f'\n<h4>{title}</h4>\n<p>{post["body"]}</p>\n{widget}\n<p><a href="https://t.me/{reference}" target="_blank" rel="noopener noreferrer">Пост в Telegram</a></p>\n</article>')
-    for marker, additions in [('<!-- TELEGRAM_NEWS_NAV -->', nav), ('<!-- TELEGRAM_NEWS_ARTICLES -->', articles)]:
+    navigation, articles = [], []
+    for story in sorted(stories, key=lambda item: (item.get('date', ''), max(item.get('source_ids', [0]))), reverse=True):
+        if f"id='{story['id']}'" in source:
+            continue
+        nav, article = render_story(story)
+        navigation.append(nav)
+        articles.append(article)
+    for marker, additions in [('<!-- TELEGRAM_NEWS_NAV -->', navigation), ('<!-- TELEGRAM_NEWS_ARTICLES -->', articles)]:
         if source.count(marker) != 1:
             raise RuntimeError('Missing or duplicate news insertion marker')
-        source = source.replace(marker, marker + '\n' + '\n'.join(additions))
-    page.write_text(source)
-    state['last_id'] = max(posts)
-    STATE.write_text(json.dumps(state) + '\n')
-    print(f'Added {len(posts)} news tabs')
+        if additions:
+            source = source.replace(marker, marker + '\n' + '\n'.join(additions))
+    if articles:
+        page.write_text(source)
+    return len(articles)
+
+
+def main():
+    state = json.loads(STATE.read_text()) if STATE.exists() else {'channels': {}}
+    # Upgrade the original single-channel watermark without replaying old posts.
+    if 'last_id' in state:
+        state['channels'] = {CHANNEL: {'last_id': state.pop('last_id')}}
+    channels = json.loads(CHANNELS.read_text()) if CHANNELS.exists() else [CHANNEL]
+    stories = []
+    for channel in channels:
+        if not re.fullmatch(r'[A-Za-z0-9_]{5,32}', channel):
+            raise RuntimeError('Invalid public channel username')
+        watermark = state['channels'].get(channel, {}).get('last_id')
+        found = read_channel(channel, watermark)
+        if watermark is not None:
+            for post in found.values():
+                if post['id'] <= watermark:
+                    continue
+                images = []
+                for index, url in enumerate(post['photos']):
+                    target = Path(f'assets/images/news/telegram-{channel}-{post["id"]}-{index}.jpg')
+                    download_image(url, target)
+                    images.append(target.as_posix())
+                stories.append({'id': f'tabs-tg-{channel}-{post["id"]}', 'title': post['title'],
+                                'date': post['date'], 'body': post['body'], 'images': images,
+                                'videos': [post['reference']] if post['video'] else [],
+                                'source_ids': [post['id']], 'channel': channel})
+        state['channels'][channel] = {'last_id': max(found)}
+    added = insert_stories(stories) if stories else 0
+    STATE.parent.mkdir(exist_ok=True)
+    serialized = json.dumps(state, ensure_ascii=False, indent=2) + '\n'
+    if not STATE.exists() or STATE.read_text() != serialized:
+        STATE.write_text(serialized)
+    print(f'Added {added} news tabs' if added else 'No new news; no publication needed')
 
 
 if __name__ == '__main__':

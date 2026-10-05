@@ -34,3 +34,13 @@ class ContactTests(unittest.TestCase):
             with self.assertRaises(RuntimeError) as result:
                 app.send({'name':'Илья','phone':'123456789','hall':'Гатчина','message':'Test'})
             self.assertNotIn('private-token', str(result.exception))
+
+    def test_html_message_preserves_client_text(self):
+        with patch.dict(os.environ, TELEGRAM_BOT_TOKEN='private-token', TELEGRAM_CHAT_ID='1'), patch.object(app.urllib.request, 'urlopen', return_value=io.BytesIO(b'{"ok":true}')) as transport:
+            app.send({'name':'<Илья>', 'phone':'123456789', 'hall':'Гатчина', 'message':'<b>Текст</b> & символы'})
+        request = transport.call_args.args[0]
+        import json
+        payload = json.loads(request.data)
+        self.assertEqual(payload['parse_mode'], 'HTML')
+        self.assertIn('&lt;b&gt;Текст&lt;/b&gt; &amp; символы', payload['text'])
+        self.assertIn('<b>Новая заявка · IWCO</b>', payload['text'])

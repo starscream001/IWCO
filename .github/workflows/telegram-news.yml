@@ -1,5 +1,8 @@
 name: Telegram news
 on:
+  push:
+    branches: [main]
+    paths: [data/telegram-web-news.json]
   schedule:
     # 10:43 Moscow: render the accumulated posts and create a PR.
     - cron: '43 7 * * *'

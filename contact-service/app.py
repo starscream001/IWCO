@@ -1,6 +1,7 @@
 """Small contact endpoint. Secrets and replay state remain on the server."""
 import base64
 import hashlib
+import html
 import hmac
 import json
 import os
@@ -70,10 +71,10 @@ def validate(data):
 
 
 def send(data):
-    message = '\n'.join(['Заявка с сайта IWCO', 'Имя: ' + data['name'], 'Телефон: ' + data['phone'], 'Зал: ' + data['hall'], 'Сообщение: ' + data['message']])
+    message = '\n'.join(['<b>Новая заявка · IWCO</b>', '<b>Имя:</b> ' + html.escape(data['name']), '<b>Телефон:</b> ' + html.escape(data['phone']), '<b>Зал:</b> ' + html.escape(data['hall']), '', '<b>Сообщение:</b>', html.escape(data['message'])])
     request = urllib.request.Request(
         'https://api.telegram.org/bot' + os.environ['TELEGRAM_BOT_TOKEN'] + '/sendMessage',
-        data=json.dumps({'chat_id': os.environ['TELEGRAM_CHAT_ID'], 'text': message}).encode(),
+        data=json.dumps({'chat_id': os.environ['TELEGRAM_CHAT_ID'], 'text': message, 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}}).encode(),
         headers={'Content-Type': 'application/json'})
     try:
         with urllib.request.urlopen(request, timeout=15) as response:

@@ -1,5 +1,6 @@
 """Notify the owner once per news PR; keep the bot token out of public assets."""
 import json
+import html
 import os
 from pathlib import Path
 import sys
@@ -17,7 +18,7 @@ def notify():
     request = urllib.request.Request(
         f'https://api.telegram.org/bot{token}/sendMessage',
         data=json.dumps({'chat_id': os.environ['TELEGRAM_CHAT_ID'],
-                         'text': 'Создан PR с новостями для сайта:\n' + url}).encode(),
+                         'text': '<b>Новости IWCO · создан PR</b>\n\n<a href="' + html.escape(url, quote=True) + '">Открыть и проверить новости</a>\n\nПосле слияния новости появятся на сайте.', 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}}).encode(),
         headers={'Content-Type': 'application/json'})
     try:
         with urllib.request.urlopen(request, timeout=60) as response:

@@ -4,6 +4,8 @@ services:
     image: iwco-contact:local
     container_name: iwco-contact
     restart: unless-stopped
+    environment:
+      HTTPS_PROXY: http://172.17.0.1:18083
     env_file: /opt/iwco-contact/secrets.env
     ports:
       - "127.0.0.1:18081:8080"

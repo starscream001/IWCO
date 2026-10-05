@@ -1,32 +1,41 @@
-# Новости из публичного Telegram-канала
+# News automation
 
-Источник: https://t.me/s/iwcowingchun. Добавлять бота администратором не нужно.
-GitHub Actions ежедневно в 10:43 по Москве читает публичную HTML-страницу,
-сохраняет фотографии, форматирует текст и добавляет новые вкладки в news.html.
-Видео встраиваются официальным Telegram-виджетом, без хранения MP4 в Git.
-Для виджета нужен доступ посетителя к Telegram; рядом есть ссылка на оригинал.
+Sources: public channels listed in `data/telegram-channels.json`; currently
+`iwcowingchun`. No Telegram administrator permission is required.
 
-Первый запуск сохраняет текущий ID поста и начинает наблюдение с этого момента:
-архив автоматически не публикуется. Последующие запуски обходят страницы назад
-до сохранённого ID. Изменения старых постов и удаления автоматически не переносятся.
-При изменении HTML Telegram может понадобиться обновить парсер.
+The archive from 6 May 2026 through 2 October 2026 is imported manually:
+26 channel messages became 16 edited stories. Descriptions and related video
+links were combined. Each story keeps its source links and publication date.
+Original archive entries are in `data/news-archive.json`; rendered tabs are in
+`news.html`. Old site news remains in place.
 
-В GitHub Settings → Secrets and variables → Actions → New repository secret:
-- TELEGRAM_BOT_TOKEN — новый токен после отзыва старого в BotFather;
-- TELEGRAM_CHAT_ID — ID личного чата для уведомлений. Сейчас форма использует
-  642040616; подтвердите получателя и напишите боту /start.
-Токен используется только для уведомлений, а не для чтения канала.
+`data/telegram-web-news.json` records ID 432 as the imported channel watermark.
+The daily importer adds only subsequent posts; no new posts means no new tabs,
+no publication PR and no Telegram notification. Repeated runs don't duplicate
+stories. New channels each get their own watermark; when adding a new channel,
+the first run starts tracking at its current latest post, without importing its archive.
+To add a public channel, add its username without @ to `data/telegram-channels.json`.
+Edits and deletions of already imported posts require editorial review.
 
-В Settings → Actions → General → Workflow permissions разрешите создание PR.
-Запуск вручную: Actions → Telegram news → Run workflow.
-Один открытый PR накапливает новости; уведомление отправляется при создании.
-Не удаляйте codex/telegram-news: ветка хранит ID последнего импортированного поста.
-Закрытый без слияния PR будет создан снова. Конфликт с main остановит workflow:
-его нужно разрешить в ветке новостей. Слияние публикует новости согласно настройкам сайта.
-Публичные репозитории могут отключать расписание после 60 дней без активности;
-проверяйте состояние Actions, особенно если долго нет новостей.
+GitHub Actions runs daily at 10:43 Moscow, with a manual Run workflow option.
+One open `codex/telegram-news` PR accumulates unpublished news. Photos are stored
+locally; videos use the official Telegram widget, loaded when their tab is opened.
+A direct Telegram link remains available if the widget cannot load.
 
-Новый токен нельзя передавать через PR или включать в JS/HTML.
-Существующая форма пока не перенесена: её публичный токен надо отозвать.
-После отзыва отправка заявок остановится до подключения серверного обработчика,
-где новый токен хранится в серверных секретах. GitHub Actions не является endpoint формы.
+GitHub Actions secrets:
+- TELEGRAM_BOT_TOKEN: bot token for PR notifications only.
+- TELEGRAM_CHAT_ID: recipient ID (642040616).
+
+Allow GitHub Actions to create pull requests under Settings → Actions → General
+→ Workflow permissions. In Actions → Telegram news, Run workflow verifies import.
+Do not automatically delete codex/telegram-news after merge: it holds pending state.
+A closed unmerged PR is recreated on the next run. Resolve any merge conflict in
+that branch before running again. Public repositories may disable scheduled runs
+after 60 days without activity; watch workflow status during long quiet periods.
+
+Telegram may change its web markup; parser failures stop the run without advancing
+the committed watermark. The importer walks older pages back to the watermark.
+It supports Telegram photos, text formatting and native videos; documents are skipped.
+
+The contact form has a separate backend; see `contact-service/README.md`.
+GitHub secrets are never embedded into client HTML or JavaScript.
