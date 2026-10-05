@@ -14,13 +14,14 @@ import urllib.error
 import urllib.request
 
 ORIGINS = set(os.environ.get('ALLOWED_ORIGINS', 'https://www.wingchunspb.ru,https://wingchunspb.ru,https://starscream001.github.io').split(','))
-HALLS = {'м. Горьковская', 'м. Удельная', 'Всеволожск', 'Гатчина'}
+HALLS = {'м. Горьковская', 'м. Удельная', 'м. Ладожская', 'Гатчина'}
 DATABASE = os.environ.get('STATE_DB', '/state/contact.sqlite3')
 
 
 def db():
     connection = sqlite3.connect(DATABASE, timeout=5)
     connection.execute('CREATE TABLE IF NOT EXISTS used_challenges (nonce TEXT PRIMARY KEY, expires INTEGER)')
+    connection.execute('CREATE TABLE IF NOT EXISTS consent_receipts (nonce TEXT PRIMARY KEY, created INTEGER, version TEXT, submission_hash TEXT, delivered INTEGER DEFAULT 0)')
     return connection
 
 
@@ -57,6 +58,8 @@ def consume_challenge(value):
 def validate(data):
     if not isinstance(data, dict):
         raise ValueError('Некорректная заявка.')
+    if data.get('consent') is not True or data.get('consent_version') != '2026-10-05':
+        raise ValueError('Подтвердите согласие на обработку персональных данных.')
     limits = {'name': (2, 100), 'phone': (7, 40), 'hall': (1, 80), 'message': (1, 2000)}
     result = {}
     for field, (minimum, maximum) in limits.items():
@@ -70,8 +73,22 @@ def validate(data):
     return result
 
 
-def send(data):
+def record_consent(data, nonce):
+    created = int(time.time())
+    # A nonce salts the digest; the receipt database retains no submitted text.
+    digest = hashlib.sha256((nonce + json.dumps(data, sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
+    with db() as connection:
+        connection.execute('DELETE FROM consent_receipts WHERE created < ?', (created - 365 * 86400,))
+        connection.execute('INSERT INTO consent_receipts (nonce, created, version, submission_hash) VALUES (?, ?, ?, ?)', (nonce, created, '2026-10-05', digest))
+    return nonce
+
+
+def send(data, receipt=None):
     message = '\n'.join(['<b>Новая заявка · IWCO</b>', '<b>Имя:</b> ' + html.escape(data['name']), '<b>Телефон:</b> ' + html.escape(data['phone']), '<b>Зал:</b> ' + html.escape(data['hall']), '', '<b>Сообщение:</b>', html.escape(data['message'])])
+    if receipt:
+        from datetime import datetime, timezone, timedelta
+        stamp = datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y %H:%M МСК')
+        message += '\n\n<b>Согласие:</b> версия 2026-10-05, ' + stamp + '\n<b>Заявка:</b> ' + html.escape(receipt)
     request = urllib.request.Request(
         'https://api.telegram.org/bot' + os.environ['TELEGRAM_BOT_TOKEN'] + '/sendMessage',
         data=json.dumps({'chat_id': os.environ['TELEGRAM_CHAT_ID'], 'text': message, 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}}).encode(),
@@ -138,7 +155,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             fields = validate(data)
             consume_challenge(data.get('challenge'))
-            send(fields)
+            nonce = data['challenge'].split('.')[1]
+            receipt = record_consent(fields, nonce)
+            send(fields, receipt)
+            with db() as connection:
+                connection.execute('UPDATE consent_receipts SET delivered = 1 WHERE nonce = ?', (nonce,))
             self.respond(200, {'ok': True})
         except (ValueError, UnicodeError) as error:
             # JSON errors may contain user input; return a generic validation error.
@@ -151,4 +172,11 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     with db():
         pass
+    import threading
+    def cleanup_receipts():
+        while True:
+            with db() as connection:
+                connection.execute('DELETE FROM consent_receipts WHERE created < ?', (int(time.time()) - 365 * 86400 + 3600,))
+            time.sleep(3600)
+    threading.Thread(target=cleanup_receipts, daemon=True).start()
     ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever()

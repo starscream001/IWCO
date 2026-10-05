@@ -24,7 +24,10 @@ once. A honeypot rejects simple form bots. These controls reduce automated spam;
 they do not claim to replace a CAPTCHA against determined attackers.
 The app validates fields and sends Telegram messages with `parse_mode=HTML`.
 User text is HTML-escaped; literal `<b>` entered by a visitor remains literal text.
-No names, phones or messages are stored in server logs or the SQLite replay DB.
+No names, phones or messages are stored in server logs or SQLite. The receipt
+table retains a salted submission digest, random nonce, timestamp, consent
+version and delivery flag for up to one year; a background task removes expired
+receipts. Consent is checked on the server as well as the client.
 
 The Russian server cannot directly reach Telegram API. The independent systemd
 service `iwco-telegram-egress` routes ONLY api.telegram.org through the existing
