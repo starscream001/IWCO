@@ -4,7 +4,8 @@ Sources: public channels listed in `data/telegram-channels.json`; currently
 `iwcowingchun`. No Telegram administrator permission is required.
 
 The archive from 6 May 2026 through 2 October 2026 is imported manually:
-26 channel messages became 16 edited stories. Descriptions and related video
+26 channel messages became 16 stories with edited titles. Full post descriptions
+are stored in the archive and rendered directly as local HTML. Related video
 links were combined. Each story keeps its source links and publication date.
 Original archive entries are in `data/news-archive.json`; rendered tabs are in
 `news.html`. Old site news remains in place.
@@ -19,8 +20,8 @@ Edits and deletions of already imported posts require editorial review.
 
 GitHub Actions runs daily at 10:43 Moscow, with a manual Run workflow option.
 One open `codex/telegram-news` PR accumulates unpublished news. Photos are stored
-locally; videos use the official Telegram widget, loaded when their tab is opened.
-A direct Telegram link remains available if the widget cannot load.
+locally. All news text is rendered as local HTML in news.html. Videos are direct
+Telegram links; full Telegram posts and their captions are not embedded.
 
 GitHub Actions secrets:
 - TELEGRAM_BOT_TOKEN: bot token for PR notifications only.

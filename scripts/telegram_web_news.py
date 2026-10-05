@@ -97,7 +97,7 @@ def render_story(story):
     published = story.get('date', '')
     date_label = datetime.strptime(published, '%Y-%m-%d').strftime('%d.%m.%Y') if published else ''
     date = f'<p class="news-date"><time datetime="{published}">{date_label}</time></p>' if published else ''
-    videos = '\n'.join(f'<div class="telegram-embed" data-telegram-post="{reference}"><p><a href="https://t.me/{reference}" target="_blank" rel="noopener noreferrer">Смотреть видео в Telegram</a></p></div>' for reference in story.get('videos', []))
+    videos = '\n'.join(f'<div class="news-video-link"><p><a href="https://t.me/{reference}" target="_blank" rel="noopener noreferrer">Смотреть видео в Telegram</a></p></div>' for reference in story.get('videos', []))
     channel = story.get('channel', CHANNEL)
     sources = ' · '.join(f'<a href="https://t.me/{channel}/{number}" target="_blank" rel="noopener noreferrer">Публикация {number}</a>' for number in story.get('source_ids', []))
     article = f"<article id='{identity}' class='news-article'>\n{images}\n<h4>{title}</h4>\n{date}\n<div class=\"news-copy\">{story['body']}</div>\n{videos}\n<p class=\"news-sources\">Источник: {sources}</p>\n</article>"

@@ -38,7 +38,10 @@ class WebNewsTests(unittest.TestCase):
                     news.main()
                 self.assertEqual(first, Path('news.html').read_text())
                 self.assertEqual(first.count('<article '), 1)
-                self.assertIn('data-telegram-post="iwcowingchun/9"', first)
+                self.assertIn('href="https://t.me/iwcowingchun/9"', first)
+                self.assertIn('New</div>', first)
+                self.assertNotIn('data-telegram-post', first)
+                self.assertNotIn('telegram-widget', first)
                 self.assertEqual(json.loads(news.STATE.read_text())['channels']['iwcowingchun']['last_id'], 9)
             finally:
                 os.chdir(original)
