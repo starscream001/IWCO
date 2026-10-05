@@ -3,7 +3,7 @@ import html
 import json
 from pathlib import Path
 from bs4 import BeautifulSoup
-from vk_video import enrich_vk_videos
+from media_embeds import enrich_media
 
 BASE = 'https://www.wingchunspb.ru'
 
@@ -12,9 +12,22 @@ def document(title, body, path, description='', schema=None, noindex=False):
     title = html.escape(title)
     if 'data-vk-src=' in body:
         body += '<script src="/assets/js/vk-video.js?v=20261005" defer></script>'
+    if 'data-media-src=' in body:
+        body += '<script src="/assets/js/media-embeds.js?v=20261005e" defer></script>'
     metadata = '' if schema is None else '<script type="application/ld+json">'+json.dumps(schema, ensure_ascii=False).replace('</', '<\\/')+'</script>'
     robots = 'noindex, follow' if noindex else 'index, follow, max-image-preview:large'
-    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} — IWCO СПб и ЛО</title><meta name="description" content="{html.escape(description, quote=True)}"><meta name="robots" content="{robots}"><link rel="canonical" href="{BASE}/{path}"><meta property="og:type" content="article"><meta property="og:title" content="{title}"><meta property="og:url" content="{BASE}/{path}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="{BASE}/assets/images/training-image-01.jpg"><link rel="icon" href="/assets/images/logo.png"><link rel="stylesheet" href="/assets/css/site.css?v=20261005">{metadata}</head><body class="site-document"><header><a class="site-brand" href="/">IWCO СПб и ЛО</a><nav aria-label="Основная навигация"><a href="/news.html">Новости</a><a href="/#our-classes">Залы</a><a href="/#contact-us">Запись</a></nav></header><main>{body}</main><footer><p>IWCO · Вин Чун в Санкт-Петербурге и Ленинградской области</p><p><a href="/privacy.html">Политика обработки данных</a> · <a href="/terms.html">Условия использования</a></p></footer></body></html>'''
+    page = f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} — IWCO СПб и ЛО</title><meta name="description" content="{html.escape(description, quote=True)}"><meta name="robots" content="{robots}"><link rel="canonical" href="{BASE}/{path}"><meta property="og:type" content="article"><meta property="og:title" content="{title}"><meta property="og:url" content="{BASE}/{path}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="{BASE}/assets/images/training-image-01.jpg"><link rel="icon" href="/assets/images/logo.png"><link rel="stylesheet" href="/assets/css/site.css?v=20261005e">{metadata}</head><body class="site-document"><header><a class="site-brand" href="/">IWCO СПб и ЛО</a><nav aria-label="Основная навигация"><a href="/news.html">Новости</a><a href="/#our-classes">Залы</a><a href="/#contact-us">Запись</a></nav></header><main>{body}</main><footer><p>IWCO · Вин Чун в Санкт-Петербурге и Ленинградской области</p><p><a href="/privacy.html">Политика обработки данных</a> · <a href="/terms.html">Условия использования</a></p><nav class="site-footer-links"><a href="/sitemap.html">Карта сайта</a><button type="button" data-statistics-settings>Настройки статистики</button></nav></footer><script src="/assets/js/privacy.js?v=20261005e" defer></script></body></html>'''
+    # Relative paths work on GitHub Pages and the WebStorm project server.
+    import posixpath
+    page_soup = BeautifulSoup(page, 'html.parser')
+    directory = posixpath.dirname(path) or '.'
+    for node in page_soup.find_all(True):
+        for attribute in ('href', 'src'):
+            value = node.get(attribute, '')
+            if value.startswith('/') and not value.startswith('//'):
+                target, separator, fragment = value.partition('#')
+                node[attribute] = posixpath.relpath(target.lstrip('/') or 'index.html', directory)+(separator+fragment if separator else '')
+    return '<!doctype html>\n'+str(page_soup).replace('<!DOCTYPE html>\n','')
 
 
 def news_path(identity):
@@ -23,7 +36,7 @@ def news_path(identity):
 
 def write_article(identity, title, body, published=''):
     path = news_path(identity)
-    soup = BeautifulSoup(enrich_vk_videos(body), 'html.parser')
+    soup = BeautifulSoup(enrich_media(body), 'html.parser')
     heading = soup.find('h4')
     if heading:
         heading.name = 'h1'
@@ -31,7 +44,7 @@ def write_article(identity, title, body, published=''):
         link.decompose()
     for image in soup.find_all('img', src=True):
         if not image['src'].startswith(('http', '/')):
-            image['src'] = '/'+image['src']
+            image['src'] = '/'+image['src'].removeprefix('../')
     for anchor in soup.find_all('a', href=True):
         if anchor['href'].startswith('assets/'):
             anchor['href'] = '/'+anchor['href']
@@ -55,10 +68,13 @@ def sitemap():
     ET.register_namespace('', 'http://www.sitemaps.org/schemas/sitemap/0.9')
     namespace = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
     root = ET.Element(namespace+'urlset')
-    paths = ['', 'news.html'] + [p.as_posix() for p in sorted(Path('news').glob('*.html'))]
+    paths = ['', 'news.html', 'sitemap.html'] + [p.as_posix() for p in sorted(Path('news').glob('*.html'))]
     for path in paths:
         url = ET.SubElement(root, namespace+'url')
         ET.SubElement(url, namespace+'loc').text = BASE+'/'+path
+    links = ''.join(f'<li><a href="/{p.as_posix()}">{html.escape(BeautifulSoup(p.read_text(), "html.parser").h1.get_text(" ",strip=True))}</a></li>' for p in sorted(Path('news').glob('*.html')) if BeautifulSoup(p.read_text(), 'html.parser').h1)
+    body = '<h1>Карта сайта</h1><ul><li><a href="/">Главная</a></li><li><a href="/#our-classes">Залы и расписание</a></li><li><a href="/#faq">Перед первой тренировкой</a></li><li><a href="/#contact-us">Запись на тренировку</a></li><li><a href="/news.html">Новости</a></li><li><a href="/privacy.html">Политика обработки данных</a></li><li><a href="/consent.html">Согласие на обработку данных</a></li><li><a href="/terms.html">Условия использования</a></li></ul><h2>Все публикации</h2><ul class="archive-list">'+links+'</ul><p><a href="/sitemap.xml">XML-карта для поисковых систем</a></p>'
+    Path('sitemap.html').write_text(document('Карта сайта', body, 'sitemap.html', 'Разделы и все новости школы Вин Чун IWCO.'))
     Path('sitemap.xml').write_bytes(ET.tostring(root,encoding='utf-8',xml_declaration=True))
 
 
@@ -110,7 +126,7 @@ def refresh_archive(limit=20):
     pages = max(1,(len(items)+limit-1)//limit)
     for page_number in range(pages):
         path = 'news/archive'+('' if page_number==0 else '-'+str(page_number+1))+'.html'
-        links = ''.join('<li>'+ (f'<time datetime="{date}">{date}</time> · ' if date else '')+f'<a href="/{path_}">{html.escape(title)}</a></li>' for _,date,title,path_ in items[page_number*limit:(page_number+1)*limit])
+        links = ''.join('<li>'+ (f'<time datetime="{date}">{date}</time>' if date else '')+f'<a href="/{path_}">{html.escape(title)}</a></li>' for _,date,title,path_ in items[page_number*limit:(page_number+1)*limit])
         pagination = ' · '.join(f'<a href="/news/archive'+('' if i==0 else '-'+str(i+1))+f'.html">{i+1}</a>' if i!=page_number else str(i+1) for i in range(pages))
         body = f'<h1>Архив новостей IWCO</h1><p>Семинары, соревнования и события школы. Страница {page_number+1} из {pages}.</p><ul class="archive-list">{links}</ul><nav aria-label="Страницы архива">{pagination}</nav><p><a href="/news.html">Последние новости во вкладках</a></p>'
         Path(path).write_text(document('Архив новостей — страница '+str(page_number+1),body,path,'Новости Вин Чун IWCO: архив семинаров, соревнований и тренировок.'))

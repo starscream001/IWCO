@@ -1,4 +1,5 @@
 (function () {
+    const siteRoot = new URL('../../', document.currentScript.src);
     const key = 'iwco-statistics-v1';
     let started = false;
     function getChoice() { try { return localStorage.getItem(key); } catch (_) { return null; } }
@@ -18,6 +19,7 @@
     banner.className = 'statistics-choice';
     banner.setAttribute('aria-label', 'Статистика посещений');
     banner.innerHTML = '<p>С вашего разрешения мы используем Яндекс Метрику для статистики посещений. Запись действий и содержимого формы отключена. <a href="/privacy.html">Подробнее об обработке данных</a>.</p><button type="button" data-choice="yes">Разрешить статистику</button><button type="button" data-choice="no">Без статистики</button>';
+    banner.querySelector('a').href = new URL('privacy.html', siteRoot).href;
     banner.hidden = getChoice() !== null;
     document.body.appendChild(banner);
     if (getChoice() === 'yes') startStatistics();
