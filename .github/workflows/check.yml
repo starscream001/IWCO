@@ -13,3 +13,5 @@ jobs:
       - run: python3 -m pip install beautifulsoup4==4.12.3
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: python3 -m unittest discover -s contact-service -p 'test_*.py'
+
+# Validate news imports and the contact service before publication.
