@@ -70,3 +70,34 @@
 .news-page .header-area .menu-trigger span:after { background: #232d39; }
 
 #news .news-post-description + .news-post-description { margin-top: 24px; }
+
+/* Keep template card styles out of article links and media controls. */
+#news #tabs > div { min-width: 0; }
+#news .tabs-content { width: auto; min-width: 0; }
+#news .tabs-content > article { overflow-wrap: anywhere; }
+#news .tabs-content > article[hidden] { display: none; }
+#news .tabs-content h4 { font-size: clamp(22px, 3vw, 30px); line-height: 1.35; letter-spacing: 0; }
+#news .tabs-content img { display: block; max-height: 620px; object-fit: contain; background: #f6f7f8; }
+#news #tabs .tabs-content ul li { display: list-item; width: auto; margin-bottom: 8px; }
+#news #tabs .tabs-content a {
+  display: inline; width: auto; padding: 0; box-shadow: none;
+  background: none; border-radius: 0; font: inherit; letter-spacing: 0;
+  text-transform: none; color: #b83b24; text-decoration: underline;
+  text-underline-offset: 3px; overflow-wrap: anywhere;
+}
+#news #tabs > .col-lg-4 > ul > li > a[aria-current] {
+  color: #a73320; background: #fff5f1; box-shadow: inset 3px 0 #ed563b;
+}
+#news #tabs > .col-lg-4 > ul > li > a:hover { background: #fff5f1; }
+#news .news-article { scroll-margin-top: 110px; }
+@media (min-width: 992px) {
+  #news #tabs > .col-lg-4 { align-self: flex-start; position: sticky; top: 110px; }
+}
+@media (max-width: 991px) {
+  #news #tabs > .col-lg-4 > ul { max-height: 240px; }
+  #news .tabs-content { margin-left: 0; }
+  #news .tabs-content img { max-height: 440px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #news #tabs a, #news .tabs-content { transition: none; }
+}
