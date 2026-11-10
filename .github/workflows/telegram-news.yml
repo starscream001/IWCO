@@ -2,7 +2,7 @@ name: Telegram news
 on:
   push:
     branches: [main]
-    paths: [data/telegram-web-news.json]
+    paths: [data/telegram-web-news.json, data/telegram-channels.json, scripts/**, .github/workflows/telegram-news.yml]
   schedule:
     # 10:43 Moscow: render the accumulated posts and create a PR.
     - cron: '43 7 * * *'
@@ -35,12 +35,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if git show-ref --verify --quiet "refs/remotes/origin/$NEWS_BRANCH"; then
-            git checkout -B "$NEWS_BRANCH" "origin/$NEWS_BRANCH"
-            git merge --no-edit "origin/$BASE_BRANCH"
-          else
-            git checkout -b "$NEWS_BRANCH"
-          fi
+          python3 scripts/prepare_news_branch.py
       - name: Install parser
         run: python3 -m pip install beautifulsoup4==4.12.3
       - name: Check importer

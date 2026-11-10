@@ -3,7 +3,7 @@
 	"use strict";
 
 	$(function() {
-        $("#tabs").tabs();
+        $("#tabs").not("#news #tabs").tabs();
     });
 
 	$(window).scroll(function() {

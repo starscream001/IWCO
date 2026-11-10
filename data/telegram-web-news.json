@@ -2,6 +2,9 @@
   "channels": {
     "iwcowingchun": {
       "last_id": 440
+    },
+    "wingchun_vsev_chanel": {
+      "last_id": 137
     }
   },
   "notified_pr": "https://github.com/starscream001/IWCO/pull/17"

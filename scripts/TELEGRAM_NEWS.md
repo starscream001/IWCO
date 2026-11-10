@@ -6,7 +6,7 @@
 
 Плеер загружается в браузере после нажатия кнопки, без автовоспроизведения. Исходная ссылка остаётся рядом на случай недоступности видео или запрета встраивания. Клипы, закрытые материалы и ссылки на альбомы автоматически не превращаются в обычный видеоплеер. Та же обработка используется во вкладках и на отдельных страницах новостей.
 Sources: public channels listed in `data/telegram-channels.json`; currently
-`iwcowingchun`. No Telegram administrator permission is required.
+`iwcowingchun` and `wingchun_vsev_chanel`. No Telegram administrator permission is required.
 
 The archive from 6 May 2026 through 2 October 2026 is imported manually:
 26 channel messages became 16 stories with edited titles. Full post descriptions
@@ -35,8 +35,11 @@ GitHub Actions secrets:
 Allow GitHub Actions to create pull requests under Settings → Actions → General
 → Workflow permissions. In Actions → Telegram news, Run workflow verifies import.
 Do not automatically delete codex/telegram-news after merge: it holds pending state.
-A closed unmerged PR is recreated on the next run. Resolve any merge conflict in
-that branch before running again. Public repositories may disable scheduled runs
+Closing a PR without merging rejects its entire pending batch. On the next run,
+the published site is restored while all processed channel IDs are retained.
+Only newer posts can create the next proposal; rejected posts and their media
+are excluded. An open PR continues accumulating new posts until reviewed.
+Resolve any merge conflict in an open branch before running again. Public repositories may disable scheduled runs
 after 60 days without activity; watch workflow status during long quiet periods.
 
 Telegram may change its web markup; parser failures stop the run without advancing
@@ -53,3 +56,6 @@ older articles remain available through paginated archive pages (20 per page).
 The importer updates article URLs, archives and sitemap whenever it adds posts.
 
 Публичные ссылки VK Video и Rutube, а также ссылки на публикации Telegram в тексте или блоке видео получают встроенные блоки просмотра. Плееры и Telegram Widget загружаются только после нажатия; исходные ссылки и местный текст сохраняются. Ссылки атрибуции не создают дополнительные Telegram-виджеты. Приватные публикации и ссылки на профили остаются ссылками. Карты sitemap.html и sitemap.xml обновляются вместе с архивом.
+
+The second channel starts after post 137 (connected on 10 November 2026).
+News selection uses native links, browser back/forward and mobile article focus.

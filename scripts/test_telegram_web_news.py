@@ -45,3 +45,33 @@ class WebNewsTests(unittest.TestCase):
                 self.assertEqual(json.loads(news.STATE.read_text())['channels']['iwcowingchun']['last_id'], 9)
             finally:
                 os.chdir(original)
+
+
+class RejectionTests(unittest.TestCase):
+    def test_rejected_cursor_only_imports_next_post(self):
+        from prepare_news_branch import merge_cursors
+        original = os.getcwd()
+        with tempfile.TemporaryDirectory() as directory:
+            try:
+                os.chdir(directory)
+                news.STATE.parent.mkdir()
+                state = merge_cursors({'channels': {'iwcowingchun': {'last_id': 1}}},
+                                      {'channels': {'iwcowingchun': {'last_id': 2}}, 'notified_pr': 'old'})
+                self.assertNotIn('notified_pr', state)
+                news.STATE.write_text(json.dumps(state))
+                Path('news.html').write_text('<!-- TELEGRAM_NEWS_NAV --><!-- TELEGRAM_NEWS_ARTICLES -->')
+                posts = {i: {'id': i, 'title': str(i), 'body': str(i), 'date': '', 'photos': [], 'video': False} for i in (1, 2, 3)}
+                with patch.object(news, 'read_channel', return_value=posts):
+                    news.main()
+                page = Path('news.html').read_text()
+                self.assertIn('tabs-tg-iwcowingchun-3', page)
+                self.assertNotIn('tabs-tg-iwcowingchun-2', page)
+            finally:
+                os.chdir(original)
+
+    def test_cursors_preserve_all_channels_and_never_rewind(self):
+        from prepare_news_branch import merge_cursors
+        state = merge_cursors({'channels': {'iwcowingchun': {'last_id': 4}}},
+                              {'channels': {'iwcowingchun': {'last_id': 2}, 'wingchun_vsev_chanel': {'last_id': 137}}})
+        self.assertEqual(state['channels']['iwcowingchun']['last_id'], 4)
+        self.assertEqual(state['channels']['wingchun_vsev_chanel']['last_id'], 137)
